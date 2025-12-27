@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Block Blast Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+        #game-container {
+            display: inline-block;
+            margin-top: 20px;
+        }
+        #grid {
+            display: grid;
+            grid-template-columns: repeat(10, 30px);
+            grid-template-rows: repeat(10, 30px);
+            gap: 1px;
+            background-color: #ccc;
+            padding: 5px;
+            border: 2px solid #333;
+        }
+        .cell {
+            width: 30px;
+            height: 30px;
+            background-color: white;
+            border: 1px solid #999;
+        }
+        .filled {
+            background-color: #007bff;
+        }
+        #blocks {
+            margin-top: 20px;
+        }
+        .block {
+            display: inline-block;
+            margin: 5px;
+            cursor: pointer;
+            border: 1px solid #333;
+            padding: 5px;
+        }
+        .block.selected {
+            border-color: red;
+        }
+        #score {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+        #message {
+            font-size: 1.2em;
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <h1>Block game fikri ch</h1>
+    <div id="score">Skor: 0</div>
+    <div id="message"></div>
+    <div id="game-container">
+        <div id="grid"></div>
+        <div id="blocks"></div>
+    </div>
+    <script>
+        const gridSize = 10;
+        let grid = Array.from({length: gridSize}, () => Array(gridSize).fill(0));
+        let score = 0;
+        let selectedBlock = null;
+        let blocks = [
+            [[1,1],[1,1]], // Blok 2x2
+            [[1,0],[1,0],[1,1]], // Blok L
+            [[1,1,1]], // Blok 1x3
+            [[1],[1],[1],[1]] // Blok 1x4
+        ];
+        let availableBlocks = [...blocks];
+
+        function renderGrid() {
+            const gridElement = document.getElementById('grid');
+            gridElement.innerHTML = '';
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell' + (grid[i][j] ? ' filled' : '');
+                    cell.addEventListener('click', () => placeBlock(i, j));
+                    gridElement.appendChild(cell);
+                }
+            }
+        }
+
+        function renderBlocks() {
+            const blocksElement = document.getElementById('blocks');
+            blocksElement.innerHTML = '';
+            availableBlocks.forEach((block, index) => {
+                const blockDiv = document.createElement('div');
+                blockDiv.className = 'block';
+                blockDiv.innerHTML = block.map(row => row.map(cell => cell ? '■' : ' ').join('')).join('<br>');
+                blockDiv.addEventListener('click', () => selectBlock(index));
+                blocksElement.appendChild(blockDiv);
+            });
+        }
+
+        function selectBlock(index) {
+            selectedBlock = availableBlocks[index];
+            document.querySelectorAll('.block').forEach((el, i) => el.classList.toggle('selected', i === index));
+        }
+
+        function placeBlock(row, col) {
+            if (!selectedBlock) return;
+            const blockHeight = selectedBlock.length;
+            const blockWidth = selectedBlock[0].length;
+            if (row + blockHeight > gridSize || col + blockWidth > gridSize) return;
+            for (let i = 0; i < blockHeight; i++) {
+                for (let j = 0; j < blockWidth; j++) {
+                    if (selectedBlock[i][j] && grid[row + i][col + j]) return;
+                }
+            }
+            for (let i = 0; i < blockHeight; i++) {
+                for (let j = 0; j < blockWidth; j++) {
+                    if (selectedBlock[i][j]) grid[row + i][col + j] = 1;
+                }
+            }
+            availableBlocks.splice(availableBlocks.indexOf(selectedBlock), 1);
+            selectedBlock = null;
+            document.querySelectorAll('.block').forEach(el => el.classList.remove('selected'));
+            checkLines();
+            renderGrid();
+            renderBlocks();
+            checkGameOver();
+        }
+
+        function checkLines() {
+            // Check rows
+            for (let i = 0; i < gridSize; i++) {
+                if (grid[i].every(cell => cell)) {
+                    grid[i] = Array(gridSize).fill(0);
+                    score += 10;
+                }
+            }
+            // Check columns
+            for (let j = 0; j < gridSize; j++) {
+                if (grid.every(row => row[j])) {
+                    for (let i = 0; i < gridSize; i++) {
+                        grid[i][j] = 0;
+                    }
+                    score += 10;
+                }
+            }
+            document.getElementById('score').textContent = 'Skor: ' + score;
+        }
+
+        function checkGameOver() {
+            if (availableBlocks.length === 0) {
+                document.getElementById('message').textContent = 'Selamat! Level selesai!';
+                return;
+            }
+            let canPlace = false;
+            for (let block of availableBlocks) {
+                for (let i = 0; i <= gridSize - block.length; i++) {
+                    for (let j = 0; j <= gridSize - block[0].length; j++) {
+                        let fits = true;
+                        for (let x = 0; x < block.length; x++) {
+                            for (let y = 0; y < block[0].length; y++) {
+                                if (block[x][y] && grid[i + x][j + y]) fits = false;
+                            }
+                        }
+                        if (fits) canPlace = true;
+                    }
+                }
+            }
+            if (!canPlace) {
+                document.getElementById('message').textContent = 'Game Over! Tidak bisa menempatkan blok lagi.';
+            } else {
+                document.getElementById('message').textContent = '';
+            }
+        }
+
+        renderGrid();
+        renderBlocks();
+    </script>
+</body>
+</html>
